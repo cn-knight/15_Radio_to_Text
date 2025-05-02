@@ -148,11 +148,17 @@ def stream_audio_transcription(url, api_key, text_container):
                 if len(display_lines) > 10:
                     display_lines = display_lines[-10:]
                 
-                # 生成HTML显示内容
-                html_lines = "<br>".join(f"{line}" for line in display_lines)
+                # 生成带有交替颜色的HTML显示内容
+                colored_lines = []
+                for i, line in enumerate(display_lines):
+                    # 偶数行使用深蓝色，奇数行使用深棕色
+                    color = "#1a5276" if i % 2 == 0 else "#784212"  # 深蓝色和深棕色
+                    colored_lines.append(f'<div style="color:{color};">{line}</div>')
+                
+                html_content = "".join(colored_lines)
                 text_container.markdown(f""" 
                 <div id='transcript-container' class='transcript-box'> 
-                识别的文字:<br>{html_lines} 
+                <div style="font-weight:bold;">识别的文字:</div>{html_content} 
                 </div> 
                 <script> 
                 (function() {{ 
@@ -190,6 +196,7 @@ def main():
             margin-bottom: 10px;
             font-size: 16px;
             scroll-behavior: smooth;
+            line-height: 1.5;
         }
         </style>
     ''', unsafe_allow_html=True)
@@ -209,9 +216,12 @@ def main():
             audio = record_audio()
             try:
                 text = service["recognize"](audio, service["key"])
-                # 添加自动滚动到底部的JavaScript
+                # 添加自动滚动到底部的JavaScript，并使用深蓝色显示文本
                 st.markdown(f"""
-                <div id='transcript-container' class='transcript-box'>识别的文字: {text}</div>
+                <div id='transcript-container' class='transcript-box'>
+                <div style="font-weight:bold;">识别的文字:</div>
+                <div style="color:#1a5276;">{text}</div>
+                </div>
                 <script>
                 (function() {{
                     var box = document.getElementById('transcript-container');
