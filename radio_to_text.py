@@ -90,14 +90,18 @@ def stream_audio_transcription(url, api_key, text_container):
     """
     global transcript_global
     transcript_global = []
-    # 添加一个计数器来跟踪显示的行数
-    display_count = 0
+    # 添加一个计数器来跟踪全局序号
+    global_line_counter = 0
     
     dg_connection = deepgram.listen.websocket.v("1")
     def on_message(self, result, **kwargs):
+        nonlocal global_line_counter
         sentence = result.channel.alternatives[0].transcript
         if sentence:
-            transcript_global.append(sentence)
+            # 为每条新的转录文本分配一个唯一的序号
+            global_line_counter += 1
+            # 将序号与文本一起存储
+            transcript_global.append((global_line_counter, sentence))
     dg_connection.on(LiveTranscriptionEvents.Transcript, on_message)
     options = LiveOptions(model="nova-3", language="en-US")
     if not dg_connection.start(options):
@@ -129,46 +133,42 @@ def stream_audio_transcription(url, api_key, text_container):
     max_time = 600
     update_interval = 2
     
-    # 用于存储显示的文本行
-    display_lines = []
+    # 用于跟踪已处理的转录文本数量
+    display_count = 0
     
     while time.time() - start_time < max_time:
         if not stream_thread.is_alive():
             break
-        if transcript_global:
+        if transcript_global and len(transcript_global) > display_count:
             # 获取新的转录文本
-            new_lines = transcript_global[display_count:]
-            if new_lines:
-                # 添加新行到显示列表
-                display_lines.extend(new_lines)
-                # 更新计数器
-                display_count = len(transcript_global)
-                
-                # 如果超过10行，清空并重新开始
-                if len(display_lines) > 10:
-                    display_lines = display_lines[-10:]
-                
-                # 生成带有交替颜色的HTML显示内容
-                colored_lines = []
-                for i, line in enumerate(display_lines):
-                    # 偶数行使用深蓝色，奇数行使用深棕色
-                    color = "#1a5276" if i % 2 == 0 else "#784212"  # 深蓝色和深棕色
-                    colored_lines.append(f'<div style="color:{color};">{line}</div>')
-                
-                html_content = "".join(colored_lines)
-                text_container.markdown(f""" 
-                <div id='transcript-container' class='transcript-box'> 
-                <div style="font-weight:bold;">识别的文字:</div>{html_content} 
-                </div> 
-                <script> 
-                (function() {{ 
-                    var box = document.getElementById('transcript-container'); 
-                    if (box) {{ 
-                        box.scrollTop = box.scrollHeight; 
-                    }} 
-                }})(); 
-                </script> 
-                """, unsafe_allow_html=True)
+            display_lines = transcript_global[-10:]  # 只显示最新的10行
+            
+            # 更新计数器
+            display_count = len(transcript_global)
+            
+            # 生成带有交替颜色的HTML显示内容
+            colored_lines = []
+            for i, (line_num, line) in enumerate(display_lines):
+                # 偶数行使用深蓝色，奇数行使用深棕色
+                color = "#1a5276" if i % 2 == 0 else "#784212"  # 深蓝色和深棕色
+                # 使用固定的全局序号
+                line_with_number = f"{line_num}_{line}"
+                colored_lines.append(f'<div style="color:{color};">{line_with_number}</div>')
+            
+            html_content = "".join(colored_lines)
+            text_container.markdown(f""" 
+            <div id='transcript-container' class='transcript-box'> 
+            <div style="font-weight:bold;">识别的文字:</div>{html_content} 
+            </div> 
+            <script> 
+            (function() {{ 
+                var box = document.getElementById('transcript-container'); 
+                if (box) {{ 
+                    box.scrollTop = box.scrollHeight; 
+                }} 
+            }})(); 
+            </script> 
+            """, unsafe_allow_html=True)
         time.sleep(update_interval)
 
     # 结束音频流线程
@@ -177,7 +177,9 @@ def stream_audio_transcription(url, api_key, text_container):
     lock_exit.release()
     stream_thread.join()
     dg_connection.finish()
-    return " ".join(transcript_global)
+    
+    # 返回所有转录文本（不包含序号）
+    return " ".join([text for _, text in transcript_global])
 
 def main():
     """
@@ -220,7 +222,7 @@ def main():
                 st.markdown(f"""
                 <div id='transcript-container' class='transcript-box'>
                 <div style="font-weight:bold;">识别的文字:</div>
-                <div style="color:#1a5276;">{text}</div>
+                <div style="color:#1a5276;">1_{text}</div>
                 </div>
                 <script>
                 (function() {{
