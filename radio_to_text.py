@@ -146,11 +146,13 @@ def stream_audio_transcription(url, api_key, text_container):
             # 更新计数器
             display_count = len(transcript_global)
             
+            # 在stream_audio_transcription函数中修改生成HTML内容的部分
             # 生成带有交替颜色的HTML显示内容
             colored_lines = []
             for i, (line_num, line) in enumerate(display_lines):
-                # 偶数行使用深蓝色，奇数行使用深棕色
-                color = "#1a5276" if i % 2 == 0 else "#784212"  # 深蓝色和深棕色
+                # 基于行号(line_num)决定颜色，而不是基于位置(i)
+                # 偶数行号使用深蓝色，奇数行号使用深棕色
+                color = "#1a5276" if line_num % 2 == 0 else "#784212"  # 深蓝色和深棕色
                 # 使用固定的全局序号
                 line_with_number = f"{line_num}_{line}"
                 colored_lines.append(f'<div style="color:{color};">{line_with_number}</div>')
