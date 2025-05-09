@@ -203,7 +203,11 @@ def stream_audio_transcription(url, api_key, text_container, summary_container=N
             except Exception as e:
                 summary_text = f"AI总结失败: {e}"
             if summary_container is not None:
-                summary_container.markdown(f"#### AI中文总结：\n{summary_text}")
+                summary_container.markdown(f"""
+                <div class='transcript-box' style='margin-top:10px; height:18vh; font-size:12px;'>
+                    {summary_text}
+                </div>
+                """, unsafe_allow_html=True)
             last_summary_time = time.time()
         time.sleep(update_interval)
 
@@ -315,10 +319,7 @@ def main():
     url = next(s["url"] for s in stations if s["name"] == selected)
     st.audio(url, format="audio/mp3", start_time=0) # 音频将以默认最大音量播放
     
-    if st.toggle("几秒后文字将出现在下方", value=True):  # 设置默认值为True，使开关默认打开
-        # st.write("语音转文字功能已启用") # 移除这行
-        # 由于麦克风录音功能已移除，不再需要模式选择
-        # mode = st.radio("选择识别模式", ["音频流源", "麦克风录音"])
+    if st.toggle("几秒后文字将出现在下方", value=True):
         service = speech_services["Deepgram"]
         container = st.empty()
         container.markdown("""
@@ -326,8 +327,13 @@ def main():
         <!-- 这里将显示识别的文字 -->
         </div>
         """, unsafe_allow_html=True)
-        # 新增：用于显示AI总结的容器
+        # 新增：用于显示AI总结的容器，并提前渲染空框
         summary_container = st.empty()
+        summary_container.markdown("""
+        <div class='transcript-box' style='margin-top:10px;'>
+            <span style='color:#888;'>等待AI总结...</span>
+        </div>
+        """, unsafe_allow_html=True)
         # 调用音频流转录函数，传入summary_container
         full_text = stream_audio_transcription(url, service["key"], container, summary_container)
         # 转录完成后，不再显示完成信息
