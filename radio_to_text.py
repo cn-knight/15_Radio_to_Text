@@ -213,6 +213,17 @@ def main():
             height: 100%;
         }
         
+        /* 调整标题位置，向上移动 */
+        h1:first-child {
+            margin-top: -20px !important;  /* 负值使标题向上移动 */
+            padding-top: 0 !important;
+        }
+        
+        /* 调整选择框位置，向上移动 */
+        .stSelectbox {
+            margin-top: -15px !important;  /* 负值使选择框向上移动 */
+        }
+        
         /* 调整文本框样式 */
         .transcript-box {
             border: 1px solid #ddd;
@@ -251,7 +262,7 @@ def main():
         </style>
     ''', unsafe_allow_html=True)
     
-    st.title("FM音乐源播放器与实时语音转文字")
+    st.title("Joying FM-英文实时广播内容识别")
     
     # 移除音量控制相关的列布局和控件
     # 原来的列布局代码:
@@ -266,11 +277,11 @@ def main():
     #     st.slider("音量", 0, 100, 50) # 音量控制控件被移除
 
     # 选择电台和音频播放器将垂直排列，并占据可用宽度
-    selected = st.selectbox("选择电台", [s["name"] for s in stations])
+    selected = st.selectbox("", [s["name"] for s in stations])  # 移除"选择电台"标签
     url = next(s["url"] for s in stations if s["name"] == selected)
     st.audio(url, format="audio/mp3", start_time=0) # 音频将以默认最大音量播放
     
-    if st.toggle("启用语音转文字"):
+    if st.toggle("语音转文字(STT)开关"):
         # st.write("语音转文字功能已启用") # 移除这行
         # 由于麦克风录音功能已移除，不再需要模式选择
         # mode = st.radio("选择识别模式", ["音频流源", "麦克风录音"])
