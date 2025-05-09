@@ -253,16 +253,22 @@ def main():
     
     st.title("FM音乐源播放器与实时语音转文字")
     
-    # 使用列布局使界面在移动设备上更紧凑
-    col1, col2 = st.columns([3, 1])
-    
-    with col1:
-        selected = st.selectbox("选择电台", [s["name"] for s in stations])
-        url = next(s["url"] for s in stations if s["name"] == selected)
-        st.audio(url, format="audio/mp3", start_time=0)
-    
-    with col2:
-        st.slider("音量", 0, 100, 50)
+    # 移除音量控制相关的列布局和控件
+    # 原来的列布局代码:
+    # col1, col2 = st.columns([3, 1])
+    # 
+    # with col1:
+    #     selected = st.selectbox("选择电台", [s["name"] for s in stations])
+    #     url = next(s["url"] for s in stations if s["name"] == selected)
+    #     st.audio(url, format="audio/mp3", start_time=0)
+    # 
+    # with col2:
+    #     st.slider("音量", 0, 100, 50) # 音量控制控件被移除
+
+    # 选择电台和音频播放器将垂直排列，并占据可用宽度
+    selected = st.selectbox("选择电台", [s["name"] for s in stations])
+    url = next(s["url"] for s in stations if s["name"] == selected)
+    st.audio(url, format="audio/mp3", start_time=0) # 音频将以默认最大音量播放
     
     if st.toggle("启用语音转文字"):
         st.write("语音转文字功能已启用")
