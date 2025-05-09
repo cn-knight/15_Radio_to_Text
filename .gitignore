@@ -1,0 +1,28 @@
+echo .env  .gitignore
+echo __pycache__  .gitignore
+echo .pyc  .gitignore
+echo .streamlitsecrets.toml  .gitignore
+
+# 环境变量文件
+.env
+.env.*
+
+# Streamlit 密钥
+.streamlit/secrets.toml
+
+# Python 缓存文件
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 虚拟环境
+venv/
+env/
+ENV/
+
+# 日志文件
+*.log
+
+# 系统文件
+.DS_Store
+Thumbs.db

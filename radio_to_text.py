@@ -25,10 +25,12 @@ speech_services = {
 
 # 电台列表
 stations = [
-    {"name": "BBC World Service", "description": "新闻/谈话", "country": "英国 (UK)", "url": "http://stream.live.vc.bbcmedia.co.uk/bbc_world_service", "format": "MP3"},
+    {"name": "WBEZ Chicago", "description": "新闻/综合", "country": "美国 (USA)", "url": "https://stream.wbez.org/wbez64-web.aac", "format": "AAC"},
     {"name": "NPR Program Stream", "description": "新闻/综合", "country": "美国 (USA)", "url": "https://npr-ice.streamguys1.com/live.mp3", "format": "MP3"},
+    {"name": "BBC World Service", "description": "新闻/谈话", "country": "英国 (UK)", "url": "http://stream.live.vc.bbcmedia.co.uk/bbc_world_service", "format": "MP3"},
     {"name": "KEXP Radio", "description": "另类/独立音乐", "country": "美国 (USA)", "url": "https://kexp-mp3-128.streamguys1.com/kexp128.mp3", "format": "MP3"},
-    {"name": "Radio Paradise (Main Mix)", "description": "摇滚/多种", "country": "未知", "url": "https://stream.radioparadise.com/mp3-192", "format": "MP3"}
+    {"name": "Radio Paradise (Main Mix)", "description": "摇滚/多种", "country": "未知", "url": "https://stream.radioparadise.com/mp3-192", "format": "MP3"},
+    {"name": "KLAA Sports", "description": "体育广播", "country": "美国 (USA)", "url": "http://klaa.streamguys1.com/live", "format": "MP3"}
 ]
 
 def deepgram_transcribe(audio_data, api_key):
