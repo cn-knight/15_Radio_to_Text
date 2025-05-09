@@ -13,6 +13,11 @@ import threading
 import pyaudio
 import time
 
+from openai import OpenAI
+
+deepseek_api_key = os.getenv("DEEPSEEK_API_KEY")
+deepseek_client = OpenAI(api_key=deepseek_api_key, base_url="https://api.deepseek.com")
+
 # 加载环境变量并初始化Deepgram客户端
 load_dotenv()
 deepgram_api_key = os.getenv("DEEPGRAM_API_KEY")
@@ -78,7 +83,7 @@ def record_audio():
     p.terminate()
     return b''.join(frames)
 
-def stream_audio_transcription(url, api_key, text_container):
+def stream_audio_transcription(url, api_key, text_container, summary_container=None):
     """
     从音频流源进行实时语音转录
     
@@ -137,9 +142,9 @@ def stream_audio_transcription(url, api_key, text_container):
 
     # 新增：用于定时抓取文本
     last_summary_time = start_time
-
-    # 用于跟踪已处理的转录文本数量
+    summary_text = ""
     display_count = 0
+    last_transcript_index = 0  # 新增：记录上次抓取到的位置
 
     while time.time() - start_time < max_time:
         if not stream_thread.is_alive():
@@ -176,11 +181,29 @@ def stream_audio_transcription(url, api_key, text_container):
             }})(); 
             </script> 
             """, unsafe_allow_html=True)
-        # 新增：每隔20秒抓取一次转录文本并打印
+        # 每隔20秒抓取一次“新增”的转录文本
         if time.time() - last_summary_time >= 20:
-            # 拼接所有转录文本
-            current_text = " ".join([text for _, text in transcript_global])
+            # 只抓取新增的内容
+            new_lines = transcript_global[last_transcript_index:]
+            current_text = " ".join([text for _, text in new_lines])
             print("【20秒抓取的转录文本】", current_text)
+            last_transcript_index = len(transcript_global)  # 更新索引
+            # 调用DeepSeek API
+            try:
+                if current_text.strip():  # 只有有新内容时才调用
+                    response = deepseek_client.chat.completions.create(
+                        model="deepseek-chat",
+                        messages=[
+                            {"role": "system", "content": "你收到的文字是我随机在一个英语广播电台获取的内容文本，我需要把这些文本进行总结，用中文告诉我电台正在说什么事情，不需要逐句翻译，而是尽可能高度总结。因为内容有限，以及转录质量，有些词汇可能不准确，你要依据文本上下文进行合理猜测"},
+                            {"role": "user", "content": current_text}
+                        ],
+                        stream=False
+                    )
+                    summary_text = response.choices[0].message.content
+            except Exception as e:
+                summary_text = f"AI总结失败: {e}"
+            if summary_container is not None:
+                summary_container.markdown(f"#### AI中文总结：\n{summary_text}")
             last_summary_time = time.time()
         time.sleep(update_interval)
 
@@ -297,17 +320,16 @@ def main():
         # 由于麦克风录音功能已移除，不再需要模式选择
         # mode = st.radio("选择识别模式", ["音频流源", "麦克风录音"])
         service = speech_services["Deepgram"]
-        
-        # 创建一个空容器并立即显示一个空的文本框
         container = st.empty()
         container.markdown("""
         <div id='transcript-container' class='transcript-box'>
         <!-- 这里将显示识别的文字 -->
         </div>
         """, unsafe_allow_html=True)
-        
-        # 调用音频流转录函数
-        full_text = stream_audio_transcription(url, service["key"], container)
+        # 新增：用于显示AI总结的容器
+        summary_container = st.empty()
+        # 调用音频流转录函数，传入summary_container
+        full_text = stream_audio_transcription(url, service["key"], container, summary_container)
         # 转录完成后，不再显示完成信息
         # st.write(f"转录完成，文本长度: {len(full_text)}") # 移除这行提示文字
     
