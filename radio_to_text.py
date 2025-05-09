@@ -134,10 +134,13 @@ def stream_audio_transcription(url, api_key, text_container):
     start_time = time.time()
     max_time = 600
     update_interval = 2
-    
+
+    # 新增：用于定时抓取文本
+    last_summary_time = start_time
+
     # 用于跟踪已处理的转录文本数量
     display_count = 0
-    
+
     while time.time() - start_time < max_time:
         if not stream_thread.is_alive():
             break
@@ -173,6 +176,12 @@ def stream_audio_transcription(url, api_key, text_container):
             }})(); 
             </script> 
             """, unsafe_allow_html=True)
+        # 新增：每隔20秒抓取一次转录文本并打印
+        if time.time() - last_summary_time >= 20:
+            # 拼接所有转录文本
+            current_text = " ".join([text for _, text in transcript_global])
+            print("【20秒抓取的转录文本】", current_text)
+            last_summary_time = time.time()
         time.sleep(update_interval)
 
     # 结束音频流线程
