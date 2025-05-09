@@ -219,9 +219,9 @@ def main():
             padding-top: 0 !important;
         }
         
-        /* 调整选择框位置，向上移动 */
+        /* 调整选择框位置，增加与标题的距离 */
         .stSelectbox {
-            margin-top: -15px !important;  /* 负值使选择框向上移动 */
+            margin-top: 5px !important;  /* 正值增加与标题的距离 */
         }
         
         /* 调整文本框样式 */
@@ -277,11 +277,11 @@ def main():
     #     st.slider("音量", 0, 100, 50) # 音量控制控件被移除
 
     # 选择电台和音频播放器将垂直排列，并占据可用宽度
-    selected = st.selectbox("", [s["name"] for s in stations])  # 移除"选择电台"标签
+    selected = st.selectbox("电台选择", [s["name"] for s in stations], label_visibility="collapsed")  # 提供标签但隐藏它
     url = next(s["url"] for s in stations if s["name"] == selected)
     st.audio(url, format="audio/mp3", start_time=0) # 音频将以默认最大音量播放
     
-    if st.toggle("语音转文字(STT)开关"):
+    if st.toggle("语音转文字(STT)开关", value=True):  # 设置默认值为True，使开关默认打开
         # st.write("语音转文字功能已启用") # 移除这行
         # 由于麦克风录音功能已移除，不再需要模式选择
         # mode = st.radio("选择识别模式", ["音频流源", "麦克风录音"])
@@ -317,8 +317,8 @@ def main():
         container = st.empty() # 用于动态更新转录文本的容器
         # 调用音频流转录函数
         full_text = stream_audio_transcription(url, service["key"], container)
-        # 转录完成后，可以选择显示一条完成信息
-        st.write(f"转录完成，文本长度: {len(full_text)}")
+        # 转录完成后，不再显示完成信息
+        # st.write(f"转录完成，文本长度: {len(full_text)}") # 移除这行提示文字
     
     st.markdown('</div>', unsafe_allow_html=True)
 
