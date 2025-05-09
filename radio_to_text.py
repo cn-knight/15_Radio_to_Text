@@ -23,7 +23,7 @@ speech_services = {
     "Deepgram": {"key": deepgram_api_key, "recognize": lambda audio, key: deepgram_transcribe(audio, key)}
 }
 
-# 电台列表
+# 电台列表，需要找到后缀是MP3或AAC格式的电台url
 stations = [
     {"name": "WBEZ Chicago", "description": "新闻/综合", "country": "美国 (USA)", "url": "https://stream.wbez.org/wbez64-web.aac", "format": "AAC"},
     {"name": "NPR Program Stream", "description": "新闻/综合", "country": "美国 (USA)", "url": "https://npr-ice.streamguys1.com/live.mp3", "format": "MP3"},
