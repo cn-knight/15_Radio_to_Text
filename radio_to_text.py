@@ -281,40 +281,20 @@ def main():
     url = next(s["url"] for s in stations if s["name"] == selected)
     st.audio(url, format="audio/mp3", start_time=0) # 音频将以默认最大音量播放
     
-    if st.toggle("语音转文字(STT)开关", value=True):  # 设置默认值为True，使开关默认打开
+    if st.toggle("几秒后文字将出现在下方", value=True):  # 设置默认值为True，使开关默认打开
         # st.write("语音转文字功能已启用") # 移除这行
         # 由于麦克风录音功能已移除，不再需要模式选择
         # mode = st.radio("选择识别模式", ["音频流源", "麦克风录音"])
         service = speech_services["Deepgram"]
         
-        # 移除麦克风录音相关的逻辑
-        # if mode == "麦克风录音":
-        #     st.write("正在监听麦克风...")
-        #     audio = record_audio()
-        #     try:
-        #         text = service["recognize"](audio, service["key"])
-        #         # 添加自动滚动到底部的JavaScript，并使用深蓝色显示文本
-        #         st.markdown(f"""
-        #         <div id='transcript-container' class='transcript-box'>
-        #         <div style="font-weight:bold;">识别的文字:</div>
-        #         <div style="color:#1a5276;"><span style="font-weight:bold; font-size:1.2em; margin-right:8px;">1</span> {text}</div>
-        #         </div>
-        #         <script>
-        #         (function() {{
-        #             var box = document.getElementById('transcript-container');
-        #             if (box) {{
-        #                 box.scrollTop = box.scrollHeight;
-        #             }}
-        #         }})();
-        #         </script>
-        #         """, unsafe_allow_html=True)
-        #     except Exception as e:
-        #         st.write(f"请求错误: {e}")
-        # else: # 现在这将是默认行为
-
-        # 直接执行音频流识别逻辑
-        # st.write("正在从音频流源识别...") # 移除这行提示文字
-        container = st.empty() # 用于动态更新转录文本的容器
+        # 创建一个空容器并立即显示一个空的文本框
+        container = st.empty()
+        container.markdown("""
+        <div id='transcript-container' class='transcript-box'>
+        <!-- 这里将显示识别的文字 -->
+        </div>
+        """, unsafe_allow_html=True)
+        
         # 调用音频流转录函数
         full_text = stream_audio_transcription(url, service["key"], container)
         # 转录完成后，不再显示完成信息

@@ -1,0 +1,5 @@
+streamlit
+deepgram-sdk
+httpx
+python-dotenv
+pyaudio
