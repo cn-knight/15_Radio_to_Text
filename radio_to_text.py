@@ -160,7 +160,7 @@ def stream_audio_transcription(url, api_key, text_container):
             html_content = "".join(colored_lines)
             text_container.markdown(f""" 
             <div id='transcript-container' class='transcript-box'> 
-            <div style="font-weight:bold;">识别的文字:</div>{html_content} 
+            {html_content} 
             </div> 
             <script> 
             (function() {{ 
