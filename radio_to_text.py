@@ -153,8 +153,8 @@ def stream_audio_transcription(url, api_key, text_container):
                 # 基于行号(line_num)决定颜色，而不是基于位置(i)
                 # 偶数行号使用深蓝色，奇数行号使用深棕色
                 color = "#1a5276" if line_num % 2 == 0 else "#784212"  # 深蓝色和深棕色
-                # 使用固定的全局序号
-                line_with_number = f"{line_num}_{line}"
+                # 使用固定的全局序号，并增强行号的视觉效果
+                line_with_number = f'<span style="font-weight:bold; font-size:1.2em; margin-right:8px;">{line_num}</span> {line}'
                 colored_lines.append(f'<div style="color:{color};">{line_with_number}</div>')
             
             html_content = "".join(colored_lines)
@@ -187,30 +187,83 @@ def main():
     """
     Streamlit应用主函数，设置UI并处理用户交互
     """
-    st.set_page_config(page_title="FM音乐源播放器", layout="wide")
+    st.set_page_config(
+        page_title="FM音乐源播放器", 
+        layout="centered",  # 改为centered布局，更适合移动设备
+        initial_sidebar_state="collapsed"  # 默认收起侧边栏，为移动设备提供更多空间
+    )
+    
+    # 添加移动端友好的CSS样式
     st.markdown('''
         <style>
+        /* 强制应用9:16比例的容器样式，不使用媒体查询，使其在所有设备上生效 */
+        .main .block-container {
+            max-width: 450px !important;  /* 控制最大宽度 */
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+            margin: 0 auto;
+        }
+        
+        /* 设置内容区域的高度，实现9:16比例 */
+        .stApp {
+            height: 100vh;
+        }
+        
+        .main {
+            height: 100%;
+        }
+        
+        /* 调整文本框样式 */
         .transcript-box {
             border: 1px solid #ddd;
             border-radius: 5px;
             padding: 10px;
             background-color: #f9f9f9;
-            height: 300px;
+            height: 40vh;  /* 使用视口高度的百分比 */
             overflow-y: auto;
             margin-bottom: 10px;
             font-size: 16px;
             scroll-behavior: smooth;
             line-height: 1.5;
         }
+        
+        /* 调整按钮和控件大小，适合触摸操作 */
+        .stButton>button {
+            font-size: 1.2rem;
+            padding: 0.5rem 1rem;
+            height: auto;
+        }
+        
+        /* 调整音频播放器大小 */
+        audio {
+            width: 100%;
+        }
+        
+        /* 调整标题大小 */
+        h1 {
+            font-size: 1.8rem !important;
+        }
+        
+        /* 调整选择框和滑块大小 */
+        .stSelectbox, .stSlider {
+            margin-bottom: 0.5rem;
+        }
         </style>
     ''', unsafe_allow_html=True)
-
+    
     st.title("FM音乐源播放器与实时语音转文字")
-    selected = st.selectbox("选择电台", [s["name"] for s in stations])
-    url = next(s["url"] for s in stations if s["name"] == selected)
-    st.audio(url, format="audio/mp3", start_time=0)
-    st.slider("音量", 0, 100, 50)
-
+    
+    # 使用列布局使界面在移动设备上更紧凑
+    col1, col2 = st.columns([3, 1])
+    
+    with col1:
+        selected = st.selectbox("选择电台", [s["name"] for s in stations])
+        url = next(s["url"] for s in stations if s["name"] == selected)
+        st.audio(url, format="audio/mp3", start_time=0)
+    
+    with col2:
+        st.slider("音量", 0, 100, 50)
+    
     if st.toggle("启用语音转文字"):
         st.write("语音转文字功能已启用")
         mode = st.radio("选择识别模式", ["音频流源", "麦克风录音"])
@@ -224,7 +277,7 @@ def main():
                 st.markdown(f"""
                 <div id='transcript-container' class='transcript-box'>
                 <div style="font-weight:bold;">识别的文字:</div>
-                <div style="color:#1a5276;">1_{text}</div>
+                <div style="color:#1a5276;"><span style="font-weight:bold; font-size:1.2em; margin-right:8px;">1</span> {text}</div>
                 </div>
                 <script>
                 (function() {{
@@ -242,6 +295,8 @@ def main():
             container = st.empty()
             full_text = stream_audio_transcription(url, service["key"], container)
             st.write(f"转录完成，文本长度: {len(full_text)}")
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
