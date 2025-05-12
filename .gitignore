@@ -1,27 +1,22 @@
-echo .env  .gitignore
-echo __pycache__  .gitignore
-echo .pyc  .gitignore
-echo .streamlitsecrets.toml  .gitignore
+# 忽略 mgt_doc 文件夹
+mgt_doc/
 
-# 环境变量文件
-.env
-.env.*
-
-# Streamlit 密钥
-.streamlit/secrets.toml
+# Python 虚拟环境
+.venv/
+venv/
+env/
 
 # Python 缓存文件
 __pycache__/
 *.py[cod]
 *$py.class
 
-# 虚拟环境
-venv/
-env/
-ENV/
+# 环境变量文件
+.env
 
-# 日志文件
-*.log
+# IDE 配置文件
+.vscode/
+.idea/
 
 # 系统文件
 .DS_Store
