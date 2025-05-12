@@ -75,7 +75,3 @@ streamlit run radio_to_text.py
 
 ```
 
----
-
-你可以根据实际仓库名称或图片路径，调整其中的 `img` 地址、项目名或作者等字段。需要我也生成 `requirements.txt` 文件吗？
-```
