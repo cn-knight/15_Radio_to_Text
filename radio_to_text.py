@@ -194,8 +194,15 @@ def stream_audio_transcription(url, api_key, text_container, summary_container=N
                     response = deepseek_client.chat.completions.create(
                         model="deepseek-chat",
                         messages=[
-                            {"role": "system", "content": "你收到的文字是我随机在一个英语广播电台获取的内容文本，我需要把这些文本进行总结，用中文告诉我电台正在说什么事情，不需要逐句翻译，而是尽可能高度总结。因为内容有限，以及转录质量，有些词汇可能不准确，你要依据文本上下文进行合理猜测"},
-                            {"role": "user", "content": current_text}
+                            {"role": "system",
+                            "content": (
+                                "你收到的文字是我随机在一个英语广播电台获取的内容文本，我需要你用简洁的中文段落总结电台正在说什么。"
+                                "不要使用Markdown格式，不要加空行，不要编号或列表，只需直接输出总结内容。"
+                                "不需要逐句翻译，而是尽可能高度总结。"
+                                "因为内容有限，以及转录质量，有些词汇可能不准确，你要依据文本上下文进行合理猜测。"
+                            )
+                        },
+                        {"role": "user", "content": current_text}
                         ],
                         stream=False
                     )
@@ -204,7 +211,7 @@ def stream_audio_transcription(url, api_key, text_container, summary_container=N
                 summary_text = f"AI总结失败: {e}"
             if summary_container is not None:
                 summary_container.markdown(f"""
-                <div class='transcript-box' style='margin-top:10px; height:18vh; font-size:12px;'>
+                <div class='transcript-box' style='margin-top:10px; height:18vh; font-size:15px;'>
                     {summary_text}
                 </div>
                 """, unsafe_allow_html=True)
@@ -330,7 +337,7 @@ def main():
         # 新增：用于显示AI总结的容器，并提前渲染空框
         summary_container = st.empty()
         summary_container.markdown("""
-        <div class='transcript-box' style='margin-top:10px;'>
+        <div class='transcript-box' style='margin-top:10px; height:18vh; font-size:15px;'>
             <span style='color:#888;'>等待AI总结...</span>
         </div>
         """, unsafe_allow_html=True)
