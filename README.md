@@ -41,9 +41,7 @@
 
 ## 🖼️ 界面预览
 
-![image](https://github.com/user-attachments/assets/93ea078b-8481-461b-a08d-ff471f6cd8ea)
->>>>>>> 8c8ab84b7f6b677091448df38fd6e5adefca3dc0
-
+Uploading 随机广播听力.mp4…
 
 ## 📦 安装与运行
 
