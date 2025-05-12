@@ -70,11 +70,7 @@ streamlit run radio_to_text.py
 你也可以在 `stations` 列表中添加其他支持 MP3 / AAC 流的英语广播电台。
 
 ## 📄 许可协议
-
-本项目采用 CC BY-NC 4.0 协议，仅供非商业用途，允许自由使用、修改与分发，但禁止商用。需注明原作者信息。
-This work is licensed under the Creative Commons Attribution-NonCommercial 4.0 International License. 
-To view a copy of this license, visit http://creativecommons.org/licenses/by-nc/4.0/ or send a letter 
-to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
+本项目采用 CC BY-NC 4.0 协议.
 ---
 
 🌟 如果你觉得本项目对你有帮助，请 Star 支持一下！
