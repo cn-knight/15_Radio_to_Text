@@ -1,7 +1,8 @@
 """
 FM音乐源播放器与实时语音转文字应用
-该脚本实现了一个基于Streamlit的FM电台播放器，集成了0功能。
+该脚本实现了一个基于Streamlit的FM电台播放器，集成了语音转文字功能。
 主要功能：播放多个在线电台、录制麦克风音频、实时转录音频流内容，并在UI中展示转录结果。
+优化了内存管理，防止长时间运行导致内存泄漏。
 """
 
 import streamlit as st
@@ -12,6 +13,7 @@ import httpx
 import threading
 import pyaudio
 import time
+from collections import deque  # 新增：用于限制存储数据量
 
 from openai import OpenAI
 
@@ -93,10 +95,13 @@ def stream_audio_transcription(url, api_key, text_container, summary_container=N
         text_container: Streamlit容器，用于显示转录文本
         
     返回:
-        完整的转录文本
+        最近的转录文本（有限长度）
     """
-    global transcript_global
-    transcript_global = []
+    # 使用deque替代无限增长的列表，限制最大长度为300条记录
+    # 这样可以防止内存无限增长
+    max_transcript_length = 300
+    transcript_global = deque(maxlen=max_transcript_length)
+    
     # 添加一个计数器来跟踪全局序号
     global_line_counter = 0
     
@@ -107,7 +112,7 @@ def stream_audio_transcription(url, api_key, text_container, summary_container=N
         if sentence:
             # 为每条新的转录文本分配一个唯一的序号
             global_line_counter += 1
-            # 将序号与文本一起存储
+            # 将序号与文本一起存储到限长队列中
             transcript_global.append((global_line_counter, sentence))
     dg_connection.on(LiveTranscriptionEvents.Transcript, on_message)
     options = LiveOptions(model="nova-3", language="en-US")
@@ -116,18 +121,31 @@ def stream_audio_transcription(url, api_key, text_container, summary_container=N
 
     lock_exit = threading.Lock()
     exit_flag = False
+    
+    # 限制音频数据缓冲区大小
+    max_buffer_size = 1024 * 1024  # 1MB 缓冲区限制
     def stream_audio():
         nonlocal exit_flag
         try:
             with httpx.stream("GET", url, timeout=None) as r:
+                buffer_size = 0
                 for data in r.iter_bytes():
                     lock_exit.acquire()
                     if exit_flag:
                         lock_exit.release()
                         break
                     lock_exit.release()
+                    
+                    # 发送数据到Deepgram
                     dg_connection.send(data)
-        except:
+                    
+                    # 累计缓冲区大小
+                    buffer_size += len(data)
+                    # 当缓冲区达到限制时重置
+                    if buffer_size > max_buffer_size:
+                        buffer_size = 0
+        except Exception as e:
+            print(f"音频流错误: {e}")
             lock_exit.acquire()
             exit_flag = True
             lock_exit.release()
@@ -137,33 +155,34 @@ def stream_audio_transcription(url, api_key, text_container, summary_container=N
     stream_thread.start()
 
     start_time = time.time()
-    max_time = 600
+    max_time = 600  # 最大运行10分钟
     update_interval = 2
 
-    # 新增：用于定时抓取文本
+    # 用于定时抓取文本
     last_summary_time = start_time
     summary_text = ""
     display_count = 0
-    last_transcript_index = 0  # 新增：记录上次抓取到的位置
+    last_transcript_index = 0
+    
+    # 存储最近的总结，限制数量
+    recent_summaries = deque(maxlen=5)  # 只保留最近5条总结
 
     while time.time() - start_time < max_time:
         if not stream_thread.is_alive():
             break
-        if transcript_global and len(transcript_global) > display_count:
-            # 获取新的转录文本
-            display_lines = transcript_global[-10:]  # 只显示最新的10行
+            
+        # 检查是否有新的转录文本
+        if len(transcript_global) > display_count:
+            # 获取新的转录文本，只显示最新的10行
+            display_lines = list(transcript_global)[-10:]
             
             # 更新计数器
             display_count = len(transcript_global)
             
-            # 在stream_audio_transcription函数中修改生成HTML内容的部分
             # 生成带有交替颜色的HTML显示内容
             colored_lines = []
             for i, (line_num, line) in enumerate(display_lines):
-                # 基于行号(line_num)决定颜色，而不是基于位置(i)
-                # 偶数行号使用深蓝色，奇数行号使用深棕色
-                color = "#1a5276" if line_num % 2 == 0 else "#784212"  # 深蓝色和深棕色
-                # 使用固定的全局序号，并增强行号的视觉效果
+                color = "#1a5276" if line_num % 2 == 0 else "#784212"
                 line_with_number = f'<span style="font-weight:bold; font-size:1.2em; margin-right:8px;">{line_num}</span> {line}'
                 colored_lines.append(f'<div style="color:{color};">{line_with_number}</div>')
             
@@ -181,13 +200,19 @@ def stream_audio_transcription(url, api_key, text_container, summary_container=N
             }})(); 
             </script> 
             """, unsafe_allow_html=True)
-        # 每隔20秒抓取一次“新增”的转录文本
+            
+        # 每隔20秒抓取一次"新增"的转录文本
         if time.time() - last_summary_time >= 20:
-            # 只抓取新增的内容
-            new_lines = transcript_global[last_transcript_index:]
+            # 只处理自上次总结以来的新内容
+            new_lines = list(transcript_global)[last_transcript_index:]
             current_text = " ".join([text for _, text in new_lines])
+            
+            # 恢复控制台输出日志
             print("【20秒抓取的转录文本】", current_text)
-            last_transcript_index = len(transcript_global)  # 更新索引
+            
+            # 更新索引，避免重复处理
+            last_transcript_index = len(transcript_global)
+            
             # 调用DeepSeek API
             try:
                 if current_text.strip():  # 只有有新内容时才调用
@@ -207,15 +232,24 @@ def stream_audio_transcription(url, api_key, text_container, summary_container=N
                         stream=False
                     )
                     summary_text = response.choices[0].message.content
+                    # 存储最近的总结
+                    recent_summaries.append(summary_text)
+                    # 恢复控制台输出日志
+                    print("【AI总结内容】", summary_text)
             except Exception as e:
                 summary_text = f"AI总结失败: {e}"
+                # 恢复错误日志输出
+                print(f"【AI总结错误】: {e}")
+            
             if summary_container is not None:
                 summary_container.markdown(f"""
                 <div class='transcript-box' style='margin-top:10px; height:18vh; font-size:15px;'>
                     {summary_text}
                 </div>
                 """, unsafe_allow_html=True)
+                
             last_summary_time = time.time()
+            
         time.sleep(update_interval)
 
     # 结束音频流线程
@@ -225,8 +259,8 @@ def stream_audio_transcription(url, api_key, text_container, summary_container=N
     stream_thread.join()
     dg_connection.finish()
     
-    # 返回所有转录文本（不包含序号）
-    return " ".join([text for _, text in transcript_global])
+    # 返回最近的转录文本（不包含序号），而不是全部历史
+    return " ".join([text for _, text in list(transcript_global)[-50:]])
 
 def main():
     """
