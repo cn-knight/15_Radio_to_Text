@@ -3,6 +3,7 @@ FM音乐源播放器与实时语音转文字应用
 该脚本实现了一个基于Streamlit的FM电台播放器，集成了语音转文字功能。
 主要功能：播放多个在线电台、录制麦克风音频、实时转录音频流内容，并在UI中展示转录结果。
 优化了内存管理，防止长时间运行导致内存泄漏。
+新增用户自定义转录时长功能，帮助用户控制API使用成本。
 """
 
 import streamlit as st
@@ -85,7 +86,7 @@ def record_audio():
     p.terminate()
     return b''.join(frames)
 
-def stream_audio_transcription(url, api_key, text_container, summary_container=None):
+def stream_audio_transcription(url, api_key, text_container, summary_container=None, max_time=600):
     """
     从音频流源进行实时语音转录
     
@@ -93,6 +94,8 @@ def stream_audio_transcription(url, api_key, text_container, summary_container=N
         url: 音频流URL
         api_key: Deepgram API密钥
         text_container: Streamlit容器，用于显示转录文本
+        summary_container: Streamlit容器，用于显示AI总结
+        max_time: 最大运行时间（秒），默认10分钟
         
     返回:
         最近的转录文本（有限长度）
@@ -155,7 +158,7 @@ def stream_audio_transcription(url, api_key, text_container, summary_container=N
     stream_thread.start()
 
     start_time = time.time()
-    max_time = 600  # 最大运行10分钟
+    # 使用传入的max_time参数，而不是硬编码的600秒
     update_interval = 2
 
     # 用于定时抓取文本
@@ -225,6 +228,7 @@ def stream_audio_transcription(url, api_key, text_container, summary_container=N
                                 "不要使用Markdown格式，不要加空行，不要编号或列表，只需直接输出总结内容。"
                                 "不需要逐句翻译，而是尽可能高度总结。"
                                 "因为内容有限，以及转录质量，有些词汇可能不准确，你要依据文本上下文进行合理猜测。"
+                                "你的输出开端不用说'电台正在说...'这种开头，直接输出总结内容。"
                             )
                         },
                         {"role": "user", "content": current_text}
@@ -343,18 +347,16 @@ def main():
     
     st.title("Joying FM-英文实时广播内容识别")
     
-    # 移除音量控制相关的列布局和控件
-    # 原来的列布局代码:
-    # col1, col2 = st.columns([3, 1])
-    # 
-    # with col1:
-    #     selected = st.selectbox("选择电台", [s["name"] for s in stations])
-    #     url = next(s["url"] for s in stations if s["name"] == selected)
-    #     st.audio(url, format="audio/mp3", start_time=0)
-    # 
-    # with col2:
-    #     st.slider("音量", 0, 100, 50) # 音量控制控件被移除
-
+    # 新增：用户输入转录时长
+    transcription_time = st.number_input(
+        "为了防止长时间运行造成的API成本浪费，请输入本次广播转文本的时间（分钟），超出该时间后广播语音将继续，但停止文本生成，为您节约费用",
+        min_value=1,
+        max_value=120,
+        value=10,  # 默认10分钟
+        step=1,
+        help="输入1-120之间的整数，表示转录持续的分钟数"
+    )
+    
     # 选择电台和音频播放器将垂直排列，并占据可用宽度
     selected = st.selectbox("电台选择", [s["name"] for s in stations], label_visibility="collapsed")  # 提供标签但隐藏它
     url = next(s["url"] for s in stations if s["name"] == selected)
@@ -375,8 +377,12 @@ def main():
             <span style='color:#888;'>等待AI总结...</span>
         </div>
         """, unsafe_allow_html=True)
-        # 调用音频流转录函数，传入summary_container
-        full_text = stream_audio_transcription(url, service["key"], container, summary_container)
+        
+        # 修改：将用户输入的分钟数转换为秒数传递给转录函数
+        max_time = int(transcription_time * 60)
+        
+        # 调用音频流转录函数，传入summary_container和用户设定的最大时间
+        full_text = stream_audio_transcription(url, service["key"], container, summary_container, max_time=max_time)
         # 转录完成后，不再显示完成信息
         # st.write(f"转录完成，文本长度: {len(full_text)}") # 移除这行提示文字
     
